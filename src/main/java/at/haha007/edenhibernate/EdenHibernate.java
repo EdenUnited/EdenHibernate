@@ -59,6 +59,7 @@ public final class EdenHibernate implements AutoCloseable {
 
         configuration.setProperty("hibernate.dialect", type.dialect());
         configuration.setProperty("hibernate.current_session_context_class", "thread");
+        configuration.setProperty("hibernate.hbm2ddl.auto", "update");
 
         configuration.setProperty("hibernate.show_sql", "" + showSql);
         configuration.setProperty("hibernate.format_sql", "" + showSql);

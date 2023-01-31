@@ -83,13 +83,19 @@
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
-            <version>6.1.5.Final</version>
+            <version>6.1.6.Final</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-hikaricp</artifactId>
+            <version>6.1.6.Final</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-community-dialects</artifactId>
-            <version>6.1.5.Final</version>
+            <version>6.1.6.Final</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

@@ -53,6 +53,7 @@ public final class EdenHibernate implements AutoCloseable {
         Configuration configuration = new Configuration();
 
         configuration.setProperty("hibernate.connection.driver_class", type.driverClass());
+        configuration.setProperty("hibernate.connection.provider_class", "org.hibernate.hikaricp.internal.HikariCPConnectionProvider");
         configuration.setProperty("hibernate.connection.url", type.pathPrefix().replace("%plugin%", plugin.getName()) + config.getString("path"));
         configuration.setProperty("hibernate.connection.username", config.getString("user"));
         configuration.setProperty("hibernate.connection.password", config.getString("password"));
@@ -69,13 +70,17 @@ public final class EdenHibernate implements AutoCloseable {
 
         annotatedClasses.forEach(configuration::addAnnotatedClass);
 
+
         return configuration.buildSessionFactory();
+
     }
 
     private void loadDependencies(DatabaseType type) {
         JsonArray jsonArray = new JsonArray();
-        jsonArray.add(generateDependencyJson("org.hibernate.orm", "hibernate-core", "6.1.5.Final"));
+        jsonArray.add(generateDependencyJson("org.hibernate.orm", "hibernate-core", "6.1.6.Final"));
         jsonArray.add(generateDependencyJson("org.hibernate.common", "hibernate-commons-annotations", "6.0.2.Final"));
+        jsonArray.add(generateDependencyJson("org.hibernate.orm", "hibernate-hikaricp", "6.1.6.Final"));
+        jsonArray.add(generateDependencyJson("com.zaxxer", "HikariCP", "5.0.1"));
         jsonArray.add(generateDependencyJson("jakarta.persistence", "jakarta.persistence-api", "3.1.0"));
         jsonArray.add(generateDependencyJson("jakarta.transaction", "jakarta.transaction-api", "2.0.0"));
         jsonArray.add(generateDependencyJson("jakarta.xml.bind", "jakarta.xml.bind-api", "3.0.1"));
@@ -89,7 +94,7 @@ public final class EdenHibernate implements AutoCloseable {
         jsonArray.add(generateDependencyJson("com.sun.istack", "istack-commons-runtime", "4.1.1"));
         switch (type) {
             case SQLITE -> {
-                jsonArray.add(generateDependencyJson("org.hibernate.orm", "hibernate-community-dialects", "6.1.5.Final"));
+                jsonArray.add(generateDependencyJson("org.hibernate.orm", "hibernate-community-dialects", "6.1.6.Final"));
                 jsonArray.add(generateDependencyJson("org.xerial", "sqlite-jdbc", "3.39.3.0"));
             }
             case H2 -> {

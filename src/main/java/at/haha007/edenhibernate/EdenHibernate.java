@@ -16,6 +16,7 @@ import java.util.Map;
 public final class EdenHibernate implements AutoCloseable {
     private final SessionFactory factory;
     private final JavaPlugin plugin;
+    private MavenLoader mavenLoader;
 
 
     public EdenHibernate(JavaPlugin plugin, List<Class<?>> annotatedClasses) {
@@ -41,6 +42,7 @@ public final class EdenHibernate implements AutoCloseable {
 
     public void close() {
         factory.close();
+        mavenLoader.close();
     }
 
     private SessionFactory load(
@@ -52,19 +54,31 @@ public final class EdenHibernate implements AutoCloseable {
         loadDependencies(type);
         Configuration configuration = new Configuration();
 
+        //set driver and provider
         configuration.setProperty("hibernate.connection.driver_class", type.driverClass());
         configuration.setProperty("hibernate.connection.provider_class", "org.hibernate.hikaricp.internal.HikariCPConnectionProvider");
+
+        //url and login
         configuration.setProperty("hibernate.connection.url", type.pathPrefix().replace("%plugin%", plugin.getName()) + config.getString("path"));
         configuration.setProperty("hibernate.connection.username", config.getString("user"));
         configuration.setProperty("hibernate.connection.password", config.getString("password"));
 
+        //hibernate properties
         configuration.setProperty("hibernate.dialect", type.dialect());
         configuration.setProperty("hibernate.current_session_context_class", "thread");
         configuration.setProperty("hibernate.hbm2ddl.auto", "update");
 
+        //debuging?
         configuration.setProperty("hibernate.show_sql", "" + showSql);
         configuration.setProperty("hibernate.format_sql", "" + showSql);
         configuration.setProperty("hibernate.use_sql_comments", "" + showSql);
+
+        //hikariCP properties, use customConfigurationValues to change them
+        configuration.setProperty("hibernate.hikari.connectionTimeout", "10000");
+        configuration.setProperty("hibernate.hikari.minimumIdle", "20");
+        configuration.setProperty("hibernate.hikari.maximumPoolSize", "300");
+        configuration.setProperty("hibernate.hikari.idleTimeout", "200000");
+
 
         customConfigurationValues.forEach(configuration::setProperty);
 
@@ -116,7 +130,7 @@ public final class EdenHibernate implements AutoCloseable {
         try {
             Constructor<MavenLoader> constructor = MavenLoader.class.getDeclaredConstructor(JavaPlugin.class, String.class);
             constructor.setAccessible(true);
-            constructor.newInstance(plugin, dependencyConfig.toString());
+            this.mavenLoader = constructor.newInstance(plugin, dependencyConfig.toString());
         } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
                  InvocationTargetException e) {
             throw new RuntimeException(e);

@@ -1,8 +1,8 @@
 package at.haha007.edenhibernate;
 
 enum DatabaseType {
-    SQLITE("org.sqlite.JDBC", "jdbc:sqlite:./plugins/%plugin%/", "org.hibernate.community.dialect.SQLiteDialect"),
-    H2("org.h2.Driver", "jdbc:h2:./plugins/%plugin%/", "org.hibernate.dialect.H2Dialect"),
+    SQLITE("org.sqlite.JDBC", "jdbc:sqlite:", "org.hibernate.community.dialect.SQLiteDialect"),
+    H2("org.h2.Driver", "jdbc:h2:", "org.hibernate.dialect.H2Dialect"),
     MYSQL("com.mysql.cj.jdbc.Driver", "jdbc:mysql:", "org.hibernate.dialect.MySQLDialect"),
     MARIADB("org.mariadb.jdbc.Driver", "jdbc:mariadb:", "org.hibernate.dialect.MariaDBDialect"),
     POSTGRESQL("org.postgresql.Driver", "jdbc:postgresql:", "org.hibernate.dialect.PostgreSQLDialect");

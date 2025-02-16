@@ -2,7 +2,6 @@ package at.haha007.edenhibernate;
 
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.jetbrains.annotations.NotNull;
@@ -15,11 +14,14 @@ import java.util.Map;
 
 public class HibernateFactory {
 
-    @NotNull
-    private final JavaPlugin plugin;
+    private final boolean showSql;
 
-    public HibernateFactory(@NotNull JavaPlugin plugin) {
-        this.plugin = plugin;
+    public HibernateFactory(boolean showSql) {
+        this.showSql = showSql;
+    }
+
+    public HibernateFactory() {
+        this(false);
     }
 
     public static ConfigurationSection createDefaultConfig() {
@@ -30,7 +32,7 @@ public class HibernateFactory {
                 .toList();
         cfg.set("type", DatabaseType.MYSQL.name().toLowerCase());
         cfg.setComments("type", List.of("Possible types: " + types));
-        cfg.set("url", "localhost:3306/database");
+        cfg.set("path", "127.0.0.1:3306/database");
         cfg.setInlineComments("username", List.of("Ignored by Sqlite and H2"));
         cfg.set("username", "root");
         cfg.setInlineComments("password", List.of("Ignored by Sqlite and H2"));
@@ -40,118 +42,113 @@ public class HibernateFactory {
 
     public SessionFactory fromYaml(ConfigurationSection cfg, boolean debug, Collection<Class<?>> annotatedClasses) {
         DatabaseType type = DatabaseType.fromString(cfg.getString("type"));
-        String url = cfg.getString("url");
-        if (url == null) throw new NullPointerException("URL not configured!");
+        String path = cfg.getString("path");
+        if (path == null) throw new NullPointerException("Path not configured!");
         String username = cfg.getString("username");
         if (username == null) throw new NullPointerException("Username not configured!");
         String password = cfg.getString("password");
         if (password == null) throw new NullPointerException("Password not configured!");
         return switch (type) {
-            case MYSQL -> createMySql(url, username, password, annotatedClasses);
-            case POSTGRESQL -> createPostgres(url, username, password, annotatedClasses);
-            case SQLITE -> createSqlite(new File(url), annotatedClasses);
-            case H2 -> createH2(new File(url), annotatedClasses);
-            case MARIADB -> createMariaDB(url, username, password, annotatedClasses);
+            case MYSQL -> createMySql(path, username, password, annotatedClasses);
+            case POSTGRESQL -> createPostgres(path, username, password, annotatedClasses);
+            case SQLITE -> createSqlite(new File(path), annotatedClasses);
+            case H2 -> createH2(new File(path), annotatedClasses);
+            case MARIADB -> createMariaDB(path, username, password, annotatedClasses);
         };
     }
 
-    public SessionFactory createPostgres(@NotNull String url,
+    public SessionFactory createPostgres(@NotNull String path,
                                          @NotNull String username,
                                          @NotNull String password,
                                          @NotNull Collection<Class<?>> annotatedClasses) {
-        return createPostgres(url, username, password, Map.of(), annotatedClasses, false);
+        return createPostgres(path, username, password, Map.of(), annotatedClasses);
     }
 
-    public SessionFactory createPostgres(@NotNull String url,
+    public SessionFactory createPostgres(@NotNull String path,
                                          @NotNull String username,
                                          @NotNull String password,
                                          @NotNull Map<String, String> customConfigurationValues,
-                                         @NotNull Collection<Class<?>> annotatedClasses,
-                                         boolean showSql) {
-        Configuration configuration = createRemote(DatabaseType.POSTGRESQL, url, username, password, showSql);
+                                         @NotNull Collection<Class<?>> annotatedClasses) {
+        Configuration configuration = createRemote(DatabaseType.POSTGRESQL, path, username, password);
         customConfigurationValues.forEach(configuration::setProperty);
         annotatedClasses.forEach(configuration::addAnnotatedClass);
         return configuration.buildSessionFactory();
     }
 
-    public SessionFactory createMySql(@NotNull String url,
+    public SessionFactory createMySql(@NotNull String path,
                                       @NotNull String username,
                                       @NotNull String password,
                                       @NotNull Collection<Class<?>> annotatedClasses) {
-        return createMySql(url, username, password, Map.of(), annotatedClasses, false);
+        return createMySql(path, username, password, Map.of(), annotatedClasses);
     }
 
-    public SessionFactory createMySql(@NotNull String url,
+    public SessionFactory createMySql(@NotNull String path,
                                       @NotNull String username,
                                       @NotNull String password,
                                       @NotNull Map<String, String> customConfigurationValues,
-                                      @NotNull Collection<Class<?>> annotatedClasses,
-                                      boolean showSql) {
-        Configuration configuration = createRemote(DatabaseType.MYSQL, url, username, password, showSql);
+                                      @NotNull Collection<Class<?>> annotatedClasses) {
+        Configuration configuration = createRemote(DatabaseType.MYSQL, path, username, password);
         customConfigurationValues.forEach(configuration::setProperty);
         annotatedClasses.forEach(configuration::addAnnotatedClass);
         return configuration.buildSessionFactory();
     }
 
 
-    public SessionFactory createMariaDB(@NotNull String url,
+    public SessionFactory createMariaDB(@NotNull String path,
                                         @NotNull String username,
                                         @NotNull String password,
                                         @NotNull Collection<Class<?>> annotatedClasses) {
-        return createMariaDB(url, username, password, Map.of(), annotatedClasses, false);
+        return createMariaDB(path, username, password, Map.of(), annotatedClasses);
     }
 
-    public SessionFactory createMariaDB(@NotNull String url,
+    public SessionFactory createMariaDB(@NotNull String path,
                                         @NotNull String username,
                                         @NotNull String password,
                                         @NotNull Map<String, String> customConfigurationValues,
-                                        @NotNull Collection<Class<?>> annotatedClasses,
-                                        boolean showSql) {
-        Configuration configuration = createRemote(DatabaseType.MARIADB, url, username, password, showSql);
+                                        @NotNull Collection<Class<?>> annotatedClasses) {
+        Configuration configuration = createRemote(DatabaseType.MARIADB, path, username, password);
         customConfigurationValues.forEach(configuration::setProperty);
         annotatedClasses.forEach(configuration::addAnnotatedClass);
         return configuration.buildSessionFactory();
     }
 
     public SessionFactory createH2(File file, Collection<Class<?>> annotatedClasses) {
-        return createH2(file, Map.of(), annotatedClasses, false);
+        return createH2(file, Map.of(), annotatedClasses);
     }
 
     public SessionFactory createH2(@NotNull File file,
                                    @NotNull Map<String, String> customConfigurationValues,
-                                   @NotNull Collection<Class<?>> annotatedClasses,
-                                   boolean showSql) {
-        Configuration configuration = createLocal(DatabaseType.H2, file, showSql);
+                                   @NotNull Collection<Class<?>> annotatedClasses) {
+        Configuration configuration = createLocal(DatabaseType.H2, file);
         customConfigurationValues.forEach(configuration::setProperty);
         annotatedClasses.forEach(configuration::addAnnotatedClass);
         return configuration.buildSessionFactory();
     }
 
     public SessionFactory createSqlite(@NotNull File file, @NotNull Collection<Class<?>> annotatedClasses) {
-        return createSqlite(file, Map.of(), annotatedClasses, false);
+        return createSqlite(file, Map.of(), annotatedClasses);
     }
 
     public SessionFactory createSqlite(@NotNull File file,
                                        @NotNull Map<String, String> customConfigurationValues,
-                                       @NotNull Collection<Class<?>> annotatedClasses,
-                                       boolean showSql) {
-        Configuration configuration = createLocal(DatabaseType.SQLITE, file, showSql);
+                                       @NotNull Collection<Class<?>> annotatedClasses) {
+        Configuration configuration = createLocal(DatabaseType.SQLITE, file);
         customConfigurationValues.forEach(configuration::setProperty);
         annotatedClasses.forEach(configuration::addAnnotatedClass);
         return configuration.buildSessionFactory();
     }
 
-    private Configuration createLocal(DatabaseType type, File file, boolean showSql) {
+    private Configuration createLocal(DatabaseType type, File file) {
         Configuration configuration = new Configuration();
 
         //set driver and provider
         hibernateInit(configuration, type.driverClass(), type.dialect());
 
         //url and login
-        configuration.setProperty("hibernate.connection.url", type.pathPrefix() + file.getPath());
+        configuration.setProperty("hibernate.connection.url", type.pathPrefix() + file.getAbsolutePath());
 
         //debuging?
-        showSqlInit(configuration, showSql);
+        showSqlInit(configuration);
 
         //hikariCP properties, use customConfigurationValues to change them
         hikariInit(configuration, 5, 20);
@@ -159,7 +156,7 @@ public class HibernateFactory {
     }
 
 
-    private Configuration createRemote(DatabaseType type, String url, String user, String password, boolean showSql) {
+    private Configuration createRemote(DatabaseType type, String url, String user, String password) {
         Configuration configuration = new Configuration();
 
         //set driver and provider
@@ -171,7 +168,7 @@ public class HibernateFactory {
         configuration.setProperty("hibernate.connection.password", password);
 
         //debuging?
-        showSqlInit(configuration, showSql);
+        showSqlInit(configuration);
 
         //hikariCP properties, use customConfigurationValues to change them
         hikariInit(configuration, 20, 300);
@@ -194,7 +191,7 @@ public class HibernateFactory {
         configuration.setProperty("hibernate.hikari.idleTimeout", "120000");
     }
 
-    private void showSqlInit(Configuration configuration, boolean showSql) {
+    private void showSqlInit(Configuration configuration) {
         configuration.setProperty("hibernate.show_sql", String.valueOf(showSql));
         configuration.setProperty("hibernate.format_sql", String.valueOf(showSql));
         configuration.setProperty("hibernate.use_sql_comments", String.valueOf(showSql));
